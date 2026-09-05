@@ -1,0 +1,10 @@
+{
+  "name": "@petrichor/font-tool",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "download-font": "node scripts/download-master-font.mjs",
+    "preview": "node src/cli.js",
+    "test": "node --test test/*.test.js"
+  }
+}
