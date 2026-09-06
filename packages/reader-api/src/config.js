@@ -24,6 +24,7 @@ export function loadConfig(overrides = {}) {
       overrides.ticketTtlMs ?? process.env.READER_TICKET_TTL_MS ?? DEFAULT_TICKET_TTL_MS,
     ),
     rateLimitPerMin: Number(overrides.rateLimitPerMin ?? 240),
+    articleByIdUrl: overrides.articleByIdUrl ?? process.env.READER_ARTICLE_BY_ID_URL ?? "",
     repoRoot: overrides.repoRoot,
   };
 }

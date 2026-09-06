@@ -6,6 +6,7 @@ import { loadChapters } from "./chapters.js";
 import { loadConfig } from "./config.js";
 import { createObfuscator } from "./obfuscate.js";
 import { clientIp, createRateLimiter } from "./rateLimit.js";
+import { fetchArticleById } from "./remoteArticle.js";
 import { createTicketStore } from "./tickets.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -65,6 +66,29 @@ export function createServer(overrides = {}) {
   const config = loadConfig({ ...overrides, repoRoot });
   const chapters = loadChapters(repoRoot);
   const tickets = createTicketStore({ ttlMs: config.ticketTtlMs });
+  const remoteCache = new Map();
+
+  async function resolveChapter(chapterId) {
+    if (chapters.has(chapterId)) {
+      return chapters.get(chapterId);
+    }
+    if (remoteCache.has(chapterId)) {
+      return remoteCache.get(chapterId);
+    }
+    if (!config.articleByIdUrl) {
+      return null;
+    }
+    try {
+      const remote = await fetchArticleById(config.articleByIdUrl, chapterId);
+      if (remote) {
+        remoteCache.set(chapterId, remote);
+      }
+      return remote;
+    } catch {
+      return null;
+    }
+  }
+
   const obfuscator = createObfuscator({
     repoRoot,
     generatedDir: path.join(here, "../generated-fonts"),
@@ -128,7 +152,8 @@ export function createServer(overrides = {}) {
         }
 
         const chapterId = String(payload.chapterId || "");
-        if (!chapters.has(chapterId)) {
+        const found = await resolveChapter(chapterId);
+        if (!found) {
           sendJson(res, 404, { error: "chapter_not_found" }, extra);
           return;
         }
@@ -159,7 +184,7 @@ export function createServer(overrides = {}) {
           sendJson(res, 401, { error: "invalid_ticket" }, extra);
           return;
         }
-        const chapter = chapters.get(row.chapterId);
+        const chapter = await resolveChapter(row.chapterId);
         if (!chapter) {
           sendJson(res, 404, { error: "chapter_not_found" }, extra);
           return;

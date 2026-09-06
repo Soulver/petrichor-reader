@@ -95,6 +95,19 @@ node packages/reader-web/src/index.js
 
 浏览器打开 `http://127.0.0.1:3981/read?chapterId=sample`。人眼应能读样章；开发者工具 Elements 里正文是 PUA + `pr-sess-*`。字体加载失败时只显示「内容无法显示」，不会回退明文。字号与深浅背景存在 `localStorage`，不保存章节文本。
 
+## 嵌入本站 `petrichor_foreground`（阶段 5）
+
+章节页 `article_detail` 已去掉正文 `v-html`，改为占位节点 + `VUE_APP_READER_EMBED`（开发环境：`http://127.0.0.1:3981/embed.js`）。目录标题、作者、评论、编辑仍走原站。
+
+请同时启动：
+
+1. `petrichor_background`（`http://localhost:8082`，阅读器服务端按同一 `articleId` 向 `/article/byId` 取明文）
+2. `node packages/reader-api/src/index.js`（默认 `READER_ARTICLE_BY_ID_URL=http://localhost:8082/article/byId`）
+3. `node packages/reader-web/src/index.js`
+4. 博客 `vue-cli`（端口 `4567`）
+
+博客 origin 不会把章节正文画进宿主 DOM；接口明文仍可能出现在浏览器 Network 里（`/article/byId` 尚未拆成「仅元数据」接口）。宿主页请不要再把 `articleContent` 塞进模板。
+
 ## 许可
 
 - 本仓库代码：MIT（见 `LICENSE`）
