@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阅读</title>
+  <link rel="stylesheet" href="/read.css" />
+</head>
+<body data-theme="light">
+  <header class="toolbar">
+    <button type="button" id="size-down" aria-label="减小字号">A-</button>
+    <button type="button" id="size-up" aria-label="增大字号">A+</button>
+    <button type="button" id="theme-toggle" aria-label="切换深浅背景">深色</button>
+  </header>
+  <p id="status" class="status" hidden></p>
+  <article id="chapter" hidden>
+    <h1 id="title"></h1>
+    <div id="body"></div>
+  </article>
+  <script>
+    window.__PETRICHOR_API__ = "__API_BASE__";
+  </script>
+  <script src="/read.js"></script>
+</body>
+</html>

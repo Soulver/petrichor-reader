@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>宿主示例（模拟外站）</title>
+  <style>
+    body { font-family: sans-serif; max-width: 44rem; margin: 2rem auto; line-height: 1.6; color: #222; }
+    .meta { color: #555; }
+    .comments { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <h1>模拟博客文章页</h1>
+  <p class="meta">目录标题（明文）：示例章节</p>
+  <p class="meta">正文在下方 iframe 中；本页源码与 innerText 都不应出现章节原句。</p>
+
+  <script src="http://127.0.0.1:3981/embed.js" async></script>
+  <div data-petrichor-reader data-chapter-id="sample"></div>
+
+  <section class="comments">
+    <h2>评论（明文，模拟）</h2>
+    <p>写得真好。</p>
+  </section>
+</body>
+</html>
