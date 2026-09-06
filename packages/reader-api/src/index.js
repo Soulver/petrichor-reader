@@ -3,10 +3,12 @@ import { loadConfig } from "./config.js";
 
 const config = loadConfig({
   articleByIdUrl:
-    process.env.READER_ARTICLE_BY_ID_URL ?? "http://localhost:8082/article/byId",
+    process.env.READER_ARTICLE_BY_ID_URL ??
+    "http://www.missimylan.info:8082/article/byId",
 });
+const host = process.env.READER_LISTEN_HOST ?? "127.0.0.1";
 const server = createServer(config);
 
-server.listen(config.port, "127.0.0.1", () => {
-  console.log(`reader-api http://127.0.0.1:${config.port}`);
+server.listen(config.port, host, () => {
+  console.log(`reader-api http://${host}:${config.port}`);
 });

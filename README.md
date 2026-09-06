@@ -101,12 +101,72 @@ node packages/reader-web/src/index.js
 
 请同时启动：
 
-1. `petrichor_background`（`http://localhost:8082`，阅读器服务端按同一 `articleId` 向 `/article/byId` 取明文）
+1. `petrichor_background` 或线上 `http://www.missimylan.info:8082`（阅读器服务端按同一 `articleId` 向 `/article/byId` 取明文）
 2. `node packages/reader-api/src/index.js`（默认 `READER_ARTICLE_BY_ID_URL=http://localhost:8082/article/byId`）
 3. `node packages/reader-web/src/index.js`
 4. 博客 `vue-cli`（端口 `4567`）
 
 博客 origin 不会把章节正文画进宿主 DOM；接口明文仍可能出现在浏览器 Network 里（`/article/byId` 尚未拆成「仅元数据」接口）。宿主页请不要再把 `articleContent` 塞进模板。
+
+## 线上部署（博客已在服务器、阅读器另发）
+
+阅读器必须和博客一样能被**访客浏览器**访问。`127.0.0.1:3981` 写进生产前端等于只打你自己电脑，线上一定是空的。
+
+服务器需要：Node 18+、Python 3、`pip install -r packages/font-tool/requirements.txt`。母版字体 `fonts/master/NotoSansSC-Regular.otf` 被 gitignore 了，要单独拷上去。
+
+**推荐：Nginx 反代到本机 3980/3981**（Node 仍监听 `127.0.0.1`）。假设子域 `http://reader.missimylan.info`：
+
+```nginx
+server {
+    listen 80;
+    server_name reader.missimylan.info;
+    location /v1/ {
+        proxy_pass http://127.0.0.1:3980;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    location / {
+        proxy_pass http://127.0.0.1:3981;
+        proxy_set_header Host $host;
+    }
+}
+```
+
+阅读器进程环境变量：
+
+```bash
+export READER_LISTEN_HOST=127.0.0.1
+export READER_API_PUBLIC_BASE=http://reader.missimylan.info
+export READER_ALLOWED_ORIGINS=http://reader.missimylan.info
+export READER_ARTICLE_BY_ID_URL=http://www.missimylan.info:8082/article/byId
+```
+
+同一台机两个进程：
+
+```bash
+node packages/reader-api/src/index.js
+node packages/reader-web/src/index.js
+```
+
+博客 `.env.production`：
+
+```
+VUE_APP_READER_EMBED = http://reader.missimylan.info/embed.js
+```
+
+改完后**重新 build 并发布前端**。DNS 把 `reader` 指到这台机。若站点已是 HTTPS，阅读器也要用 HTTPS，否则浏览器会拦混合内容。
+
+**备选：直接开放端口**（无 Nginx 时）。防火墙放行 3980、3981，并：
+
+```bash
+export READER_LISTEN_HOST=0.0.0.0
+export READER_API_PUBLIC_BASE=http://www.missimylan.info:3980
+export READER_ALLOWED_ORIGINS=http://www.missimylan.info:3981
+```
+
+前端：`VUE_APP_READER_EMBED = http://www.missimylan.info:3981/embed.js`
+
+可用 systemd 或 pm2 保活。先在服务器上打开 `http://阅读器域名/read?chapterId=已有文章id`，再打开博客章节页确认 iframe。
 
 ## 许可
 

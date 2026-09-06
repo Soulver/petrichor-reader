@@ -22,9 +22,13 @@ export function findMasterFont(fontsMasterDir) {
   return null;
 }
 
+function pythonBin() {
+  return process.env.READER_PYTHON || process.env.PYTHON || "python3";
+}
+
 export function buildWoff2(job) {
   return new Promise((resolve, reject) => {
-    const child = spawn("python", [SCRIPT], {
+    const child = spawn(pythonBin(), [SCRIPT], {
       stdio: ["pipe", "pipe", "pipe"],
     });
     let stderr = "";

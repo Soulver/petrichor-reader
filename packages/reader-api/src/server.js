@@ -193,7 +193,8 @@ export function createServer(overrides = {}) {
         let packed;
         try {
           packed = await obfuscator.forChapter(chapter);
-        } catch {
+        } catch (err) {
+          console.error("font_unavailable", err && err.message ? err.message : err);
           sendJson(res, 503, { error: "font_unavailable" }, extra);
           return;
         }

@@ -1,18 +1,4 @@
-"""Subset a master font and remap listed glyphs onto PUA codepoints.
-
-Reads a JSON job from stdin:
-
-{
-  "masterPath": "...",
-  "outputPath": "...",
-  "fontFamily": "pr-sess-preview",
-  "psName": "PrSessPreview",
-  "mappings": [{"from": 19968, "to": 57344}, ...],
-  "passthrough": [9, 10, 13, 32]
-}
-"""
-
-from __future__ import annotations
+"""Subset a master font and remap listed glyphs onto PUA codepoints."""
 
 import json
 import sys
@@ -24,23 +10,20 @@ from fontTools.ttLib.tables._c_m_a_p import CmapSubtable
 TOFU = 0x25A1
 
 
-def _set_family_names(font: TTFont, family: str, ps_name: str) -> None:
+def _set_family_names(font, family, ps_name):
     name = font["name"]
     pairs = [
         (1, family),
         (2, "Regular"),
-        (3, f"{ps_name};petrichor-reader"),
-        (4, f"{family} Regular"),
+        (3, "%s;petrichor-reader" % ps_name),
+        (4, "%s Regular" % family),
         (6, ps_name),
         (16, family),
         (17, "Regular"),
     ]
     for name_id, value in pairs:
         written = False
-        for plat_id, enc_id, lang_id in (
-            (3, 1, 0x409),
-            (1, 0, 0),
-        ):
+        for plat_id, enc_id, lang_id in ((3, 1, 0x409), (1, 0, 0)):
             try:
                 name.setName(value, name_id, plat_id, enc_id, lang_id)
                 written = True
@@ -50,12 +33,12 @@ def _set_family_names(font: TTFont, family: str, ps_name: str) -> None:
             name.setName(value, name_id, 3, 1, 0x409)
 
 
-def _replace_cmap(font: TTFont, mapping: dict[int, str]) -> None:
+def _replace_cmap(font, mapping):
     table = font["cmap"]
     max_cp = max(mapping) if mapping else 0
-    subtables: list[CmapSubtable] = []
+    subtables = []
 
-    def add(fmt: int, plat: int, enc: int) -> None:
+    def add(fmt, plat, enc):
         sub = CmapSubtable.newSubtable(fmt)
         sub.platformID = plat
         sub.platEncID = enc
@@ -73,17 +56,17 @@ def _replace_cmap(font: TTFont, mapping: dict[int, str]) -> None:
     table.tables = subtables
 
 
-def build(job: dict) -> None:
+def build(job):
     font = TTFont(job["masterPath"], lazy=False)
     original_cmap = font.getBestCmap() or {}
 
-    passthrough = {int(cp) for cp in job.get("passthrough", [])}
+    passthrough = set(int(cp) for cp in job.get("passthrough", []))
     passthrough.add(0x20)
 
-    needed: set[int] = set(passthrough)
+    needed = set(passthrough)
     needed.add(TOFU)
 
-    glyph_from: dict[int, str | None] = {}
+    glyph_from = {}
     for item in job["mappings"]:
         src = int(item["from"])
         if src in original_cmap:
@@ -100,7 +83,11 @@ def build(job: dict) -> None:
     options.name_IDs = ["*"]
     options.notdef_outline = True
     options.recommended_glyphs = True
-    options.drop_tables += ["DSIG"]
+    drop = getattr(options, "drop_tables", None)
+    if isinstance(drop, set):
+        drop.add("DSIG")
+    elif drop is not None:
+        options.drop_tables = list(drop) + ["DSIG"]
 
     subsetter = Subsetter(options=options)
     subsetter.populate(unicodes=needed)
@@ -108,8 +95,9 @@ def build(job: dict) -> None:
 
     cmap = font.getBestCmap() or {}
     tofu_name = cmap.get(TOFU, ".notdef")
+    order = font.getGlyphOrder()
 
-    new_map: dict[int, str] = {}
+    new_map = {}
     for cp in passthrough:
         if cp in cmap:
             new_map[cp] = cmap[cp]
@@ -117,11 +105,15 @@ def build(job: dict) -> None:
     for item in job["mappings"]:
         src = int(item["from"])
         dst = int(item["to"])
-        name = glyph_from[src]
-        if name is None:
+        gname = glyph_from[src]
+        if gname is None:
             new_map[dst] = tofu_name
+        elif src in cmap:
+            new_map[dst] = cmap[src]
+        elif gname in order:
+            new_map[dst] = gname
         else:
-            new_map[dst] = cmap.get(src, name if name in font.getGlyphOrder() else tofu_name)
+            new_map[dst] = tofu_name
 
     _replace_cmap(font, new_map)
     _set_family_names(font, job["fontFamily"], job["psName"])
@@ -131,7 +123,7 @@ def build(job: dict) -> None:
     font.close()
 
 
-def main() -> None:
+def main():
     job = json.load(sys.stdin)
     build(job)
 

@@ -77,6 +77,9 @@
           continue;
         }
         rec.addedNodes.forEach(scan);
+        if (rec.removedNodes.length) {
+          scan(rec.target);
+        }
       }
     });
     observer.observe(document.documentElement, {
@@ -92,4 +95,8 @@
   } else {
     boot();
   }
+
+  window.petrichorReaderScan = function () {
+    scan(document);
+  };
 })();

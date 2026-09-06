@@ -44,9 +44,10 @@ export async function fetchArticleById(url, id) {
   }
   const json = await res.json();
   const article = json && json.data;
-  if (!article || !article.id) {
+  if (!article) {
     return null;
   }
+  const articleId = String(article.id || id);
   const title = [article.articleChapter, article.articleTitle]
     .filter(Boolean)
     .join(" - ");
@@ -58,5 +59,5 @@ export async function fetchArticleById(url, id) {
   if (!body) {
     return null;
   }
-  return { id: String(article.id), title: title || String(article.id), body };
+  return { id: articleId, title: title || articleId, body };
 }

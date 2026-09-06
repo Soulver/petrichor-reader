@@ -18,7 +18,11 @@ export function loadConfig(overrides = {}) {
     publicBase: String(
       overrides.publicBase ?? process.env.READER_API_PUBLIC_BASE ?? DEFAULT_PUBLIC_BASE,
     ).replace(/\/$/, ""),
-    allowedOrigins: overrides.allowedOrigins ?? DEFAULT_ALLOWED_ORIGINS,
+    allowedOrigins: overrides.allowedOrigins ?? (
+      process.env.READER_ALLOWED_ORIGINS
+        ? process.env.READER_ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+        : DEFAULT_ALLOWED_ORIGINS
+    ),
     siteKey: overrides.siteKey ?? process.env.READER_SITE_KEY ?? DEFAULT_SITE_KEY,
     ticketTtlMs: Number(
       overrides.ticketTtlMs ?? process.env.READER_TICKET_TTL_MS ?? DEFAULT_TICKET_TTL_MS,
