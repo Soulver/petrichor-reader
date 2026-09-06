@@ -3,6 +3,8 @@
   --fg: #1a1a1a;
   --muted: #666;
   --bar: #efe8d8;
+  --wm-light: rgba(26, 26, 26, 0.028);
+  --wm-dark: rgba(26, 26, 26, 0.08);
 }
 
 html[data-theme="dark"] {
@@ -10,6 +12,8 @@ html[data-theme="dark"] {
   --fg: #e8e2d6;
   --muted: #a39b8c;
   --bar: #2a2824;
+  --wm-light: rgba(232, 226, 214, 0.03);
+  --wm-dark: rgba(232, 226, 214, 0.1);
 }
 
 * { box-sizing: border-box; }
@@ -21,9 +25,52 @@ html, body {
   color: var(--fg);
 }
 
+body {
+  display: flex;
+  flex-direction: column;
+}
+
 html.embedded,
 html.embedded body {
   min-height: 0;
+}
+
+.reader-main {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+#watermarks,
+.wm {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.wm {
+  background-repeat: repeat;
+}
+
+.reader-main[data-wm="off"] .wm,
+.reader-main[data-wm="light"] .wm-dark,
+.reader-main[data-wm="dark"] .wm-light {
+  display: none;
+}
+
+.wm-light {
+  background-position: 0 0;
+}
+
+.wm-dark {
+  background-position: 72px 48px;
+}
+
+#status,
+#chapter {
+  position: relative;
+  z-index: 1;
 }
 
 .toolbar {

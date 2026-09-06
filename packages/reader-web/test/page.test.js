@@ -37,10 +37,18 @@ test("client assets never include decode helpers or fixture prose", () => {
     assert.equal(src.includes("春江潮水连海平"), false);
     assert.equal(src.includes("map.json"), false);
   }
+  const html = fs.readFileSync(path.join(publicDir, "read.html"), "utf8");
+  assert.match(html, /id="wm-light"/);
+  assert.match(html, /id="wm-dark"/);
+  const css = fs.readFileSync(path.join(publicDir, "read.css"), "utf8");
+  assert.match(css, /--wm-light/);
+  assert.match(css, /--wm-dark/);
   const js = fs.readFileSync(path.join(publicDir, "read.js"), "utf8");
   assert.match(js, /内容无法显示/);
   assert.match(js, /FontFace/);
   assert.match(js, /petrichor-reader:resize/);
+  assert.match(js, /mode: "both"/);
+  assert.match(js, /off \| light \| dark \| both/);
   assert.equal(js.includes("console.log"), false);
   const embed = fs.readFileSync(path.join(publicDir, "embed.js"), "utf8");
   assert.match(embed, /data-petrichor-reader/);
