@@ -1,4 +1,5 @@
 import { chapterBodyHasContent, collectVisibleText, normalizeChapterBody } from "./richText.js";
+import { normalizeUpdatedAt } from "./revision.js";
 
 /** @deprecated kept for tests that only need visible text */
 export function htmlToPlain(html) {
@@ -31,5 +32,10 @@ export async function fetchArticleById(url, id) {
   if (!chapterBodyHasContent(body)) {
     return null;
   }
-  return { id: articleId, title: title || articleId, body };
+  return {
+    id: articleId,
+    title: title || articleId,
+    body,
+    updatedAt: normalizeUpdatedAt(article.updateTime || article.createTime || ""),
+  };
 }
