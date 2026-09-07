@@ -46,6 +46,7 @@ test("client assets never include decode helpers or fixture prose", () => {
   const js = fs.readFileSync(path.join(publicDir, "read.js"), "utf8");
   assert.match(js, /内容无法显示/);
   assert.match(js, /FontFace/);
+  assert.match(js, /innerHTML/);
   assert.match(js, /petrichor-reader:resize/);
   assert.match(js, /mode: "both"/);
   assert.match(js, /off \| light \| dark \| both/);

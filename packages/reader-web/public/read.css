@@ -113,6 +113,37 @@ html.embedded body {
 }
 
 #body {
-  white-space: pre-wrap;
   word-break: break-word;
 }
+
+#body p,
+#body blockquote,
+#body h1,
+#body h2,
+#body h3,
+#body ul,
+#body ol {
+  margin: 0 0 0.85em;
+}
+
+#body ul,
+#body ol {
+  padding-left: 1.4em;
+}
+
+#body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.75em auto;
+}
+
+#body a {
+  color: inherit;
+  text-underline-offset: 0.15em;
+}
+
+#body .pr-align-left { text-align: left; }
+#body .pr-align-center { text-align: center; }
+#body .pr-align-right { text-align: right; }
+#body .pr-align-justify { text-align: justify; }

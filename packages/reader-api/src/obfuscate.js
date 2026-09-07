@@ -4,6 +4,7 @@ import { buildMapping, encodeText } from "../../font-tool/src/mapText.js";
 import { buildWoff2, findMasterFont } from "../../font-tool/src/buildFont.js";
 import { FONT_FAMILY_PREFIX } from "../../font-tool/src/policy.js";
 import { containsHan } from "./config.js";
+import { collectVisibleText, encodeRichHtml, normalizeChapterBody } from "./richText.js";
 
 export function createObfuscator({ repoRoot, generatedDir }) {
   const masterPath = findMasterFont(path.join(repoRoot, "fonts/master"));
@@ -20,12 +21,14 @@ export function createObfuscator({ repoRoot, generatedDir }) {
     }
 
     const title = chapter.title || "";
-    const combined = title ? `${title}\n${chapter.body}` : chapter.body;
+    const html = normalizeChapterBody(chapter.body);
+    const visible = collectVisibleText(html);
+    const combined = title ? `${title}\n${visible}` : visible;
     const { forward } = buildMapping(combined);
     const titleGlyphs = title ? encodeText(title, forward) : "";
-    const bodyGlyphs = encodeText(chapter.body, forward);
+    const bodyGlyphs = encodeRichHtml(html, forward);
 
-    if (containsHan(bodyGlyphs) || containsHan(titleGlyphs)) {
+    if (containsHan(collectVisibleText(bodyGlyphs)) || containsHan(titleGlyphs)) {
       throw new Error("encoded payload still contains han");
     }
 

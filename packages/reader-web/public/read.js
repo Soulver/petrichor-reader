@@ -159,7 +159,7 @@ async function readChapter() {
 
   const family = `"${payload.fontFamily}"`;
   titleEl.textContent = payload.titleGlyphs || "";
-  bodyEl.textContent = payload.bodyGlyphs;
+  bodyEl.innerHTML = payload.bodyGlyphs;
   titleEl.style.fontFamily = family;
   bodyEl.style.fontFamily = family;
   statusEl.hidden = true;
