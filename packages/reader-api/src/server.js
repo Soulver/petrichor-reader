@@ -66,27 +66,25 @@ export function createServer(overrides = {}) {
   const config = loadConfig({ ...overrides, repoRoot });
   const chapters = loadChapters(repoRoot);
   const tickets = createTicketStore({ ttlMs: config.ticketTtlMs });
-  const remoteCache = new Map();
+  const remoteInflight = new Map();
 
   async function resolveChapter(chapterId) {
     if (chapters.has(chapterId)) {
       return chapters.get(chapterId);
     }
-    if (remoteCache.has(chapterId)) {
-      return remoteCache.get(chapterId);
-    }
     if (!config.articleByIdUrl) {
       return null;
     }
-    try {
-      const remote = await fetchArticleById(config.articleByIdUrl, chapterId);
-      if (remote) {
-        remoteCache.set(chapterId, remote);
-      }
-      return remote;
-    } catch {
-      return null;
+    if (remoteInflight.has(chapterId)) {
+      return remoteInflight.get(chapterId);
     }
+    const pending = fetchArticleById(config.articleByIdUrl, chapterId)
+      .catch(() => null)
+      .finally(() => {
+        remoteInflight.delete(chapterId);
+      });
+    remoteInflight.set(chapterId, pending);
+    return pending;
   }
 
   const obfuscator = createObfuscator({

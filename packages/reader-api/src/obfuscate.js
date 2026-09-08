@@ -4,28 +4,46 @@ import { buildMapping, encodeText } from "../../font-tool/src/mapText.js";
 import { buildWoff2, findMasterFont } from "../../font-tool/src/buildFont.js";
 import { FONT_FAMILY_PREFIX } from "../../font-tool/src/policy.js";
 import { containsHan } from "./config.js";
+import { evictOtherRevisions, fontCacheKey } from "./revision.js";
+import { collectVisibleText, encodeRichHtml, normalizeChapterBody } from "./richText.js";
 
-export function createObfuscator({ repoRoot, generatedDir }) {
-  const masterPath = findMasterFont(path.join(repoRoot, "fonts/master"));
-  if (!masterPath) {
-    throw new Error("master font missing");
-  }
+export function createObfuscator({
+  repoRoot,
+  generatedDir,
+  masterPath: masterPathOverride,
+  buildFont = buildWoff2,
+} = {}) {
+  let masterPath = masterPathOverride ?? null;
   fs.mkdirSync(generatedDir, { recursive: true });
   const cache = new Map();
 
+  function resolveMaster() {
+    if (masterPath) {
+      return masterPath;
+    }
+    masterPath = findMasterFont(path.join(repoRoot, "fonts/master"));
+    if (!masterPath) {
+      throw new Error("master font missing");
+    }
+    return masterPath;
+  }
+
   async function forChapter(chapter) {
-    const hit = cache.get(chapter.id);
+    const key = fontCacheKey(chapter);
+    const hit = cache.get(key);
     if (hit) {
       return hit;
     }
 
     const title = chapter.title || "";
-    const combined = title ? `${title}\n${chapter.body}` : chapter.body;
+    const html = normalizeChapterBody(chapter.body);
+    const visible = collectVisibleText(html);
+    const combined = title ? `${title}\n${visible}` : visible;
     const { forward } = buildMapping(combined);
     const titleGlyphs = title ? encodeText(title, forward) : "";
-    const bodyGlyphs = encodeText(chapter.body, forward);
+    const bodyGlyphs = encodeRichHtml(html, forward);
 
-    if (containsHan(bodyGlyphs) || containsHan(titleGlyphs)) {
+    if (containsHan(collectVisibleText(bodyGlyphs)) || containsHan(titleGlyphs)) {
       throw new Error("encoded payload still contains han");
     }
 
@@ -41,8 +59,8 @@ export function createObfuscator({ repoRoot, generatedDir }) {
       });
     }
 
-    await buildWoff2({
-      masterPath,
+    await buildFont({
+      masterPath: resolveMaster(),
       outputPath,
       fontFamily,
       psName,
@@ -51,8 +69,9 @@ export function createObfuscator({ repoRoot, generatedDir }) {
     });
 
     const buffer = fs.readFileSync(outputPath);
-    const record = { fontFamily, titleGlyphs, bodyGlyphs, buffer };
-    cache.set(chapter.id, record);
+    const record = { fontFamily, titleGlyphs, bodyGlyphs, buffer, revision: key };
+    evictOtherRevisions(cache, chapter.id, key);
+    cache.set(key, record);
     return record;
   }
 

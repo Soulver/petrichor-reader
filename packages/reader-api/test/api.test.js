@@ -78,6 +78,7 @@ test("ticket + chapter JSON has no han; font is woff2", async () => {
     assert.equal(containsHan(chapterRes.text), false);
     const chapter = JSON.parse(chapterRes.text);
     assert.ok(chapter.bodyGlyphs.length > 10);
+    assert.match(chapter.bodyGlyphs, /<p>/);
     assert.ok(chapter.titleGlyphs.length > 0);
     assert.match(chapter.fontFamily, /^pr-sess-/);
     assert.equal(chapter.fontFamily.includes("Noto"), false);

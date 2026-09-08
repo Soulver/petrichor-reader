@@ -1,36 +1,9 @@
-const ENTITIES = {
-  nbsp: " ",
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-};
+import { chapterBodyHasContent, collectVisibleText, normalizeChapterBody } from "./richText.js";
+import { normalizeUpdatedAt } from "./revision.js";
 
+/** @deprecated kept for tests that only need visible text */
 export function htmlToPlain(html) {
-  if (!html) {
-    return "";
-  }
-  return String(html)
-    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
-    .replace(/<\s*\/\s*p\s*>/gi, "\n")
-    .replace(/<\s*\/\s*div\s*>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, ent) => {
-      const key = ent.toLowerCase();
-      if (ENTITIES[key]) {
-        return ENTITIES[key];
-      }
-      if (key.startsWith("#x")) {
-        return String.fromCodePoint(Number.parseInt(key.slice(2), 16) || 32);
-      }
-      if (key.startsWith("#")) {
-        return String.fromCodePoint(Number.parseInt(key.slice(1), 10) || 32);
-      }
-      return match;
-    })
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return collectVisibleText(normalizeChapterBody(html)).replace(/\u00a0/g, " ").trim();
 }
 
 export async function fetchArticleById(url, id) {
@@ -51,13 +24,18 @@ export async function fetchArticleById(url, id) {
   const title = [article.articleChapter, article.articleTitle]
     .filter(Boolean)
     .join(" - ");
-  const body = htmlToPlain(
+  const body = normalizeChapterBody(
     [article.articleHead, article.articleContent, article.articleTail]
       .filter(Boolean)
-      .join("\n\n"),
+      .join(""),
   );
-  if (!body) {
+  if (!chapterBodyHasContent(body)) {
     return null;
   }
-  return { id: articleId, title: title || articleId, body };
+  return {
+    id: articleId,
+    title: title || articleId,
+    body,
+    updatedAt: normalizeUpdatedAt(article.updateTime || article.createTime || ""),
+  };
 }

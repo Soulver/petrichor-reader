@@ -10,10 +10,12 @@ export function loadChapters(repoRoot) {
   for (const entry of index.chapters) {
     const filePath = path.join(dir, entry.file);
     const body = fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
+    const updatedAt = String(fs.statSync(filePath).mtimeMs);
     byId.set(entry.id, {
       id: entry.id,
       title: entry.title,
       body,
+      updatedAt,
     });
   }
 
