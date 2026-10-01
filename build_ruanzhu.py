@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from docx import Document
-from ruanzhu_figures import build_figures
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -155,23 +154,6 @@ def add_bullet(doc, text):
     set_run_font(run, size=12)
 
 
-def add_figure(doc, image_path, caption, width_cm=15.2):
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    pf = p.paragraph_format
-    pf.space_before = Pt(8)
-    pf.space_after = Pt(2)
-    pf.line_spacing = 1.0
-    pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
-    run = p.add_run()
-    run.add_picture(str(image_path), width=Cm(width_cm))
-    cap = doc.add_paragraph()
-    cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    set_paragraph_format(cap, before=0, after=8, line=18, first_line=0)
-    r = cap.add_run(caption)
-    set_run_font(r, east="宋体", size=10.5)
-
-
 def add_pre(doc, text):
     for line in text.splitlines() or [""]:
         p = doc.add_paragraph()
@@ -180,7 +162,7 @@ def add_pre(doc, text):
         set_run_font(run, east="宋体", ascii_font="Consolas", size=9)
 
 
-def spec_paragraphs(figs):
+def spec_paragraphs():
     return [
         ("title", "计算机软件著作权登记说明书"),
         ("h1", "引言"),
@@ -284,20 +266,20 @@ def spec_paragraphs(figs):
         ("bullet", "T1 凭证域。reader-api 可在内存中短暂持有本章明文，以便调用构造域。对外只签发短时阅读票，并只返回已通过汉字断言的编码结果。跨源访问由 CORS 白名单限制为阅读器源。"),
         ("bullet", "T2 字形域。reader-web 只接收私有区字符串、字体家族名和一次性 woff2。它用 FontFace 完成排版。任一步失败即关闭正文，不回退明文，也不保存章节文本。"),
         ("bullet", "T3 宿主域。博客或其他站点只放置 embed.js 与占位节点。iframe 的父页面只接收高度数值，不接收正文、票或映射表。"),
-        ("fig", figs["arch"], "图 4-1  四层信任边界。箭头表示唯一允许的调用方向。"),
+        ("p", "图 4-1 四层信任边界（请在本段上方粘贴：自上而下为 T3 宿主域、T2 字形域、T1 凭证域、T0 构造域，箭头标出唯一调用方向）。"),
         ("p", "接口层用进程内 Map 保存票与字体缓冲，V1.0 不引入外部缓存。进程重启后未过期的票一并失效，阅读页重新换票即可。同一 chapterId 的编码结果与 woff2 在进程内复用，避免每次换票都启动 Python。"),
         ("h2", "4.2 核心算法一：出现序私有区映射"),
         ("p", "采集程序依赖码位同一性：只要文档对象模型里的字符与自然语言使用同一个 Unicode 标量值，innerText 就是原文。本算法切断这种同一性，同时保留“码位到字形”的排版关系。读者看到的是字体画出来的汉字，节点里存放的是私有使用区码位。"),
         ("p", "设本章字符序列为 C。空白谓词 W 与 JavaScript 正则空白一致，包括普通空格、制表、回车换行、不间断空格和表意空格。W(c) 为真的字符原样进入输出，并且不占用编号。对其余字符定义出现序 sigma(c)：它等于该字符首次出现之前，已经出现过的、互不相同的非空白字符个数，从 0 起计。因此 sigma 是从本章非空白字符集到自然数的单射，重复字符复用第一次的编号。"),
         ("p", "基本多文种平面私有区的容量 N 等于 (U+F8FF − U+E000) + 1，即 6400。码位函数 pi 在编号小于 N 时取 U+E000 + k，否则取补充私有区 U+F0000 + (k − N)。编码函数 E 在 W(c) 为真时输出 c，否则输出 pi(sigma(c)) 对应的字符。服务端在外发前检查标题编码与正文编码的拼接结果，要求其中不再出现 U+3400 至 U+9FFF 的汉字；否则整次请求失败，错误码为 font_unavailable。"),
-        ("fig", figs["formula"], "图 4-2  码位函数、出现序与外发条件。式中的符号与 font-tool 的 policy.js、mapText.js 一致。"),
-        ("fig", figs["map"], "图 4-3  单字符编码流程。左支为空白直通，右支为出现序分配。两支在汉字断言处汇合。"),
+        ("p", "图 4-2 码位函数与外发条件（请在本段上方粘贴公式：N = 6400，pi(k) 在 k < N 时为 U+E000+k，否则为 U+F0000+(k−N)；E 对空白原样输出，其余取 pi(sigma(c))；外发前编码结果不得再含 U+3400 至 U+9FFF）。"),
+        ("p", "图 4-3 单字符编码流程（请在本段上方粘贴流程图：空白直通；非空白按首次出现分配或复用编号；两支汇合后做汉字断言，失败则返回 503）。"),
         ("p", "例。文本为“春 江”，中间有一个空格。空格满足 W，原样保留且不取号。春是第一个非空白字符，sigma 为 0，码位为 U+E000。江的 sigma 为 1，码位为 U+E001。若母版含这两个字，随后的字体把 U+E000、U+E001 分别画成“春”和“江”。查看源代码或 innerText 只能得到私有区字符和那个空格。"),
         ("p", "该映射不是全局常数偏移。编号由本章字符的首次出现顺序决定，换一章、改一个字，后续编号都会变化。编码结果必须和同一张映射生成的 woff2 一起发布。只改文本不改字体时，浏览器只能画出 .notdef；只改字体不下发编码文本时，页面上仍是可读汉字。二者缺一，方案不成立。"),
         ("p", "解码函数只用于测试和服务端自检。阅读器前端不包含逆映射。本算法的目标是去掉“直接读取 DOM 或章节 JSON”这条路径。它不声称能够阻止截图、人工抄录、光学字符识别，或针对字体表的专业逆向。"),
         ("h2", "4.3 核心算法二：按需子集与 cmap 重挂"),
         ("p", "只把字符换成私有区、却仍使用原字体时，读者看到的是方框。把整套母版 cmap 全部改写后再下发，体积和可对照的字形面都会过大。构造域因此只做三件事：保留本章真正用到的原字形；把这些字形挂到 E 所使用的目标码位上；让空白码位继续指向可排版的空白字形。"),
-        ("fig", figs["cmap"], "图 4-4  子集化与 cmap 重挂。六步在同一次 Python 任务中完成，不把中间映射表交给浏览器。"),
+        ("p", "图 4-4 子集化与 cmap 重挂（请在本段上方粘贴流程图：读母版、收集码位、子集、把字形挂到目标私有区、按最大码位选择 format 4 或 format 12、改名后写成 woff2）。"),
         ("p", "记母版最佳 cmap 为 G0，子集之后的 cmap 为 G1。直通码位集合 P 至少包含制表、换行、回车、普通空格、不间断空格和表意空格（码位 9、10、13、32、160、12288），实现中还会再并入 U+0020。需要保留的 Unicode 集合为 P、全部源码位，以及豆腐字形 U+25A1。"),
         ("p", "对每一个映射对 (s, d)，新表 newMap 按下面的规则取值。若母版中不存在 s，目标码位 d 指向豆腐字形；子集后若连豆腐也不存在，则指向 .notdef。若 s 在 G1 中，则 newMap(d) = G1(s)，也就是原汉字的字形名，而不是原汉字的码位。对每个直通码位 p，若 p 仍在 G1 中，则 newMap(p) = G1(p)。这样换行仍然换行，汉字的形被挂到私有区。"),
         ("p", "子表格式由 newMap 的最大码位决定。最大码位不超过 U+FFFF 时写 format 4，平台记录为 Microsoft (3,1) 与 Unicode (0,3)。一旦用到补充私有区，改写 format 12，平台记录为 (3,10) 与 (0,4)。两套平台各写一份，避免不同浏览器选中不同子表后出现一个能读、一个全是方框。旧子表在写入前整体替换，不与母版 cmap 并存。"),
@@ -305,13 +287,13 @@ def spec_paragraphs(figs):
         ("p", "子集选项关闭 hinting 和版式特性，打开 desubroutinize，并丢弃 DSIG。前者减小体积，后者避免 CFF 子例程在 cmap 改写后失效。生成结果按章缓存在接口进程中，与票的 fontId 绑定后再对浏览器可见。"),
         ("h2", "4.4 核心协议：短时票、字体句柄与锁源"),
         ("p", "编码只解决“响应体里有什么”。还要约束谁可以触发编码、结果能被持有多久。博客页面若能直接请求章节接口，宿主脚本或浏览器网络面板就会成为另一条泄漏面。因此接口的 CORS 允许列表默认只有阅读器页的源。带有其他 Origin 的请求直接返回 403，预检也不会放行。"),
-        ("fig", figs["seq"], "图 4-5  从宿主占位节点到字体绘制的时序。返回阅读页的载荷只有私有区字符串和字体地址。"),
+        ("p", "图 4-5 短时票拉取时序（请在本段上方粘贴时序图：宿主、阅读页、接口、字体进程。返回阅读页的只有私有区正文和字体地址，回传宿主的只有高度）。"),
         ("p", "阅读票由 crypto.randomBytes(24) 生成再做 base64url，熵为 192 比特。字体句柄由 randomBytes(16) 生成再做十六进制，熵为 128 比特。二者分开存储：票记录指向 fontId，字体 URL 使用 fontId，日志里的票字符串不等于字体文件名。默认生存时间 Δ 为 300 秒。记录有效，当且仅当它仍在表中，且当前时间早于签发时刻加 Δ。字体缓冲写入同一到期时刻，票失效后字体地址一并 404，不能长期热链。"),
         ("p", "换票请求携带 chapterId，以及可选的 siteKey。密钥与配置不一致时拒绝签发，避免无关站点把字体生成打满 CPU。章节解析先查本地样章，未命中再按配置访问远程文章接口。取章节接口必须带票，查询参数或请求头均可。票缺失、伪造或过期返回 401。通过汉字断言之前，接口不会返回正文。"),
         ("p", "阅读页收到载荷后，要求 fontUrl、fontFamily、bodyGlyphs 三者同时存在，再用 FontFace 以 display:block 加载字体。加载成功才把私有区字符串写入文本节点。嵌入场景下，页面向父窗口发送的消息类型为 petrichor-reader:resize，字段只有高度。父页面校验 event.origin 等于阅读器源，且 event.source 就是该 iframe，然后才改高度。"),
         ("h2", "4.5 远程 HTML 纯化"),
         ("p", "既有内容系统通常以 HTML 保存章节。映射算法不能把标签名和属性也编进私有区，否则读者意义上的段落会被尖括号打散。纯化在进入 sigma 之前完成，规则固定、可测试。"),
-        ("fig", figs["html"], "图 4-6  远程 HTML 到可映射纯文本的五步变换。"),
+        ("p", "图 4-6 远程 HTML 纯化（请在本段上方粘贴流程：HTML，换行，去标签，还原实体，压缩空行，再进入映射）。"),
         ("p", "br 与块级结束标签先换成换行，其余标签删除。随后还原命名实体以及十进制、十六进制数字实体，再把连续三段以上的换行压成两段。显示标题由章节号字段与标题字段用分隔符连接。文首、正文、文尾三段纯化后拼接，空正文拒绝进入映射。结果按文章 id 缓存在接口进程。宿主拿到文章元数据后应清空自己的正文字段，避免模板再把原文画进宿主 DOM。"),
         ("p", "上述四则算法与一条协议共同构成外发不变量：浏览器与宿主能看到字形和章节元数据，不能从 HTML、innerText 或章节 JSON 直接读到可读正文。字体生成失败、汉字断言失败或字体加载失败时，系统选择不显示，而不是退回明文。"),
         ("h1", "五、操作使用说明"),
@@ -363,15 +345,9 @@ def spec_paragraphs(figs):
 
 
 def write_spec(path: Path):
-    figs = build_figures(OUT / "插图")
     doc = Document()
     setup_page(doc, top=2.54, bottom=2.54, left=2.54, right=2.54)
-    for item in spec_paragraphs(figs):
-        kind = item[0]
-        text = item[1] if len(item) > 1 else ""
-        if kind == "fig":
-            add_figure(doc, item[1], item[2])
-            continue
+    for kind, text in spec_paragraphs():
         if kind == "title":
             add_title(doc, text)
             sub = doc.add_paragraph()
